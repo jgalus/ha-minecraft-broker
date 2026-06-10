@@ -38,6 +38,14 @@ class BrokerRateLimitError(BrokerError):
     """Broker rate limit hit (HTTP 429)."""
 
 
+def is_secure_broker_url(url: str) -> bool:
+    """Require HTTPS unless the user is intentionally using localhost."""
+    parsed = urlsplit(url)
+    if parsed.scheme == "https":
+        return True
+    return parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}
+
+
 def build_signed_request(
     url: str,
     action: str,

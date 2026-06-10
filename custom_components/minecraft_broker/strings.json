@@ -10,6 +10,16 @@
           "hmac_key": "HMAC key",
           "instances": "Instances (comma-separated, e.g. survival, creative)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Minecraft Broker",
+        "description": "Update the broker URL, bearer token, HMAC key, and instance list. Leave secrets blank to keep their current values.",
+        "data": {
+          "url": "Broker URL",
+          "bearer_token": "Bearer token",
+          "hmac_key": "HMAC key",
+          "instances": "Instances (comma-separated)"
+        }
       }
     },
     "error": {
@@ -30,16 +40,6 @@
         "data": {
           "instances": "Instances (comma-separated)",
           "scan_interval": "Status poll interval (seconds)"
-        }
-      },
-      "reconfigure": {
-        "title": "Reconfigure Minecraft Broker",
-        "description": "Update the broker URL, bearer token, HMAC key, and instance list.",
-        "data": {
-          "url": "Broker URL",
-          "bearer_token": "Bearer token",
-          "hmac_key": "HMAC key",
-          "instances": "Instances (comma-separated)"
         }
       }
     }

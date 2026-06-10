@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from urllib.parse import urlsplit
 
 import voluptuous as vol
 
@@ -27,6 +26,7 @@ from .api import (
     BrokerClient,
     BrokerConnectionError,
     BrokerError,
+    is_secure_broker_url,
 )
 from .const import (
     ACTION_STATUS,
@@ -44,14 +44,6 @@ _LOGGER = logging.getLogger(__name__)
 
 def _parse_instances(raw: str) -> list[str]:
     return [item.strip() for item in (raw or "").split(",") if item.strip()]
-
-
-def _is_secure_url(url: str) -> bool:
-    """Require HTTPS unless the user is intentionally using localhost."""
-    parsed = urlsplit(url)
-    if parsed.scheme == "https":
-        return True
-    return parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}
 
 
 async def _validate(hass, url: str, bearer: str, hmac_key: str) -> None:
@@ -72,7 +64,7 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             url = user_input[CONF_URL].strip()
-            if not _is_secure_url(url):
+            if not is_secure_broker_url(url):
                 errors["base"] = "invalid_url"
             else:
                 await self.async_set_unique_id(url)
@@ -131,15 +123,23 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             url = user_input[CONF_URL].strip()
-            if not _is_secure_url(url):
+            bearer_token = (
+                user_input.get(CONF_BEARER_TOKEN) or entry.data[CONF_BEARER_TOKEN]
+            )
+            hmac_key = user_input.get(CONF_HMAC_KEY) or entry.data[CONF_HMAC_KEY]
+
+            if not is_secure_broker_url(url):
                 errors["base"] = "invalid_url"
             else:
+                if url != entry.unique_id:
+                    await self.async_set_unique_id(url)
+                    self._abort_if_unique_id_configured()
                 try:
                     await _validate(
                         self.hass,
                         url,
-                        user_input[CONF_BEARER_TOKEN],
-                        user_input[CONF_HMAC_KEY],
+                        bearer_token,
+                        hmac_key,
                     )
                 except BrokerAuthError:
                     errors["base"] = "invalid_auth"
@@ -151,10 +151,11 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
                     instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
                     return self.async_update_reload_and_abort(
                         entry,
+                        unique_id=url,
                         data={
                             CONF_URL: url,
-                            CONF_BEARER_TOKEN: user_input[CONF_BEARER_TOKEN],
-                            CONF_HMAC_KEY: user_input[CONF_HMAC_KEY],
+                            CONF_BEARER_TOKEN: bearer_token,
+                            CONF_HMAC_KEY: hmac_key,
                         },
                         options={
                             CONF_INSTANCES: instances,
@@ -170,10 +171,10 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_URL, default=entry.data[CONF_URL]): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.URL)
                 ),
-                vol.Required(CONF_BEARER_TOKEN, default=entry.data[CONF_BEARER_TOKEN]): TextSelector(
+                vol.Optional(CONF_BEARER_TOKEN, default=""): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
-                vol.Required(CONF_HMAC_KEY, default=entry.data[CONF_HMAC_KEY]): TextSelector(
+                vol.Optional(CONF_HMAC_KEY, default=""): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
                 ),
                 vol.Optional(CONF_INSTANCES, default=current_instances): str,

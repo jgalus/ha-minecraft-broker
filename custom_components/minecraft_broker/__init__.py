@@ -9,11 +9,11 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .api import BrokerClient, BrokerError
+from .api import BrokerClient, BrokerError, is_secure_broker_url
 from .const import (
     ATTR_INSTANCE,
     CONF_BEARER_TOKEN,
@@ -46,6 +46,11 @@ _INSTANCE_REQUIRED = {
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Minecraft Broker from a config entry."""
+    if not is_secure_broker_url(entry.data[CONF_URL]):
+        raise ConfigEntryAuthFailed(
+            "Broker URL must use HTTPS, unless it is localhost/127.0.0.1"
+        )
+
     session = async_get_clientsession(hass)
     client = BrokerClient(
         session,
