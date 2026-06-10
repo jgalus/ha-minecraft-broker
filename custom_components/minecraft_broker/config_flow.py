@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from urllib.parse import urlsplit
 
 import voluptuous as vol
 
@@ -15,6 +16,11 @@ from homeassistant.config_entries import (
 )
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.selector import (
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .api import (
     BrokerAuthError,
@@ -40,6 +46,14 @@ def _parse_instances(raw: str) -> list[str]:
     return [item.strip() for item in (raw or "").split(",") if item.strip()]
 
 
+def _is_secure_url(url: str) -> bool:
+    """Require HTTPS unless the user is intentionally using localhost."""
+    parsed = urlsplit(url)
+    if parsed.scheme == "https":
+        return True
+    return parsed.scheme == "http" and parsed.hostname in {"localhost", "127.0.0.1"}
+
+
 async def _validate(hass, url: str, bearer: str, hmac_key: str) -> None:
     """Probe the broker with a ``status`` call to validate connection + auth."""
     session = async_get_clientsession(hass)
@@ -58,46 +72,115 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             url = user_input[CONF_URL].strip()
-            await self.async_set_unique_id(url)
-            self._abort_if_unique_id_configured()
-            try:
-                await _validate(
-                    self.hass,
-                    url,
-                    user_input[CONF_BEARER_TOKEN],
-                    user_input[CONF_HMAC_KEY],
-                )
-            except BrokerAuthError:
-                errors["base"] = "invalid_auth"
-            except BrokerConnectionError:
-                errors["base"] = "cannot_connect"
-            except BrokerError:
-                errors["base"] = "unknown"
+            if not _is_secure_url(url):
+                errors["base"] = "invalid_url"
             else:
-                instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
-                return self.async_create_entry(
-                    title="Minecraft Broker",
-                    data={
-                        CONF_URL: url,
-                        CONF_BEARER_TOKEN: user_input[CONF_BEARER_TOKEN],
-                        CONF_HMAC_KEY: user_input[CONF_HMAC_KEY],
-                    },
-                    options={
-                        CONF_INSTANCES: instances,
-                        CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-                    },
-                )
+                await self.async_set_unique_id(url)
+                self._abort_if_unique_id_configured()
+                try:
+                    await _validate(
+                        self.hass,
+                        url,
+                        user_input[CONF_BEARER_TOKEN],
+                        user_input[CONF_HMAC_KEY],
+                    )
+                except BrokerAuthError:
+                    errors["base"] = "invalid_auth"
+                except BrokerConnectionError:
+                    errors["base"] = "cannot_connect"
+                except BrokerError:
+                    errors["base"] = "unknown"
+                else:
+                    instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
+                    return self.async_create_entry(
+                        title="Minecraft Broker",
+                        data={
+                            CONF_URL: url,
+                            CONF_BEARER_TOKEN: user_input[CONF_BEARER_TOKEN],
+                            CONF_HMAC_KEY: user_input[CONF_HMAC_KEY],
+                        },
+                        options={
+                            CONF_INSTANCES: instances,
+                            CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
+                        },
+                    )
 
         schema = vol.Schema(
             {
-                vol.Required(CONF_URL): str,
-                vol.Required(CONF_BEARER_TOKEN): str,
-                vol.Required(CONF_HMAC_KEY): str,
+                vol.Required(CONF_URL): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.URL)
+                ),
+                vol.Required(CONF_BEARER_TOKEN): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+                vol.Required(CONF_HMAC_KEY): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
                 vol.Optional(CONF_INSTANCES, default=""): str,
             }
         )
         return self.async_show_form(
             step_id="user", data_schema=schema, errors=errors
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        entry = self._get_reconfigure_entry()
+
+        if user_input is not None:
+            url = user_input[CONF_URL].strip()
+            if not _is_secure_url(url):
+                errors["base"] = "invalid_url"
+            else:
+                try:
+                    await _validate(
+                        self.hass,
+                        url,
+                        user_input[CONF_BEARER_TOKEN],
+                        user_input[CONF_HMAC_KEY],
+                    )
+                except BrokerAuthError:
+                    errors["base"] = "invalid_auth"
+                except BrokerConnectionError:
+                    errors["base"] = "cannot_connect"
+                except BrokerError:
+                    errors["base"] = "unknown"
+                else:
+                    instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data={
+                            CONF_URL: url,
+                            CONF_BEARER_TOKEN: user_input[CONF_BEARER_TOKEN],
+                            CONF_HMAC_KEY: user_input[CONF_HMAC_KEY],
+                        },
+                        options={
+                            CONF_INSTANCES: instances,
+                            CONF_SCAN_INTERVAL: entry.options.get(
+                                CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+                            ),
+                        },
+                    )
+
+        current_instances = ", ".join(entry.options.get(CONF_INSTANCES, []) or [])
+        schema = vol.Schema(
+            {
+                vol.Required(CONF_URL, default=entry.data[CONF_URL]): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.URL)
+                ),
+                vol.Required(CONF_BEARER_TOKEN, default=entry.data[CONF_BEARER_TOKEN]): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+                vol.Required(CONF_HMAC_KEY, default=entry.data[CONF_HMAC_KEY]): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
+                vol.Optional(CONF_INSTANCES, default=current_instances): str,
+            }
+        )
+        return self.async_show_form(
+            step_id="reconfigure", data_schema=schema, errors=errors
         )
 
     @staticmethod

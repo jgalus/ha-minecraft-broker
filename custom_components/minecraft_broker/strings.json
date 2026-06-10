@@ -14,11 +14,13 @@
     },
     "error": {
       "invalid_auth": "Authentication failed. Check the bearer token and HMAC key.",
+      "invalid_url": "Use an HTTPS broker URL, or localhost/127.0.0.1 for local development.",
       "cannot_connect": "Could not reach the broker. Check the URL and that the Function is running.",
       "unknown": "Unexpected error talking to the broker."
     },
     "abort": {
-      "already_configured": "This broker URL is already configured."
+      "already_configured": "This broker URL is already configured.",
+      "reconfigure_successful": "Broker settings updated."
     }
   },
   "options": {
@@ -28,6 +30,16 @@
         "data": {
           "instances": "Instances (comma-separated)",
           "scan_interval": "Status poll interval (seconds)"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Minecraft Broker",
+        "description": "Update the broker URL, bearer token, HMAC key, and instance list.",
+        "data": {
+          "url": "Broker URL",
+          "bearer_token": "Bearer token",
+          "hmac_key": "HMAC key",
+          "instances": "Instances (comma-separated)"
         }
       }
     }

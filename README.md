@@ -55,9 +55,10 @@ The config flow asks for:
 | HMAC key | `…` | The `BROKER_HMAC_KEY` set on the broker. |
 | Instances | `survival, creative` | Comma-separated; creates per-instance entities/buttons. |
 
-Setup validates the values by issuing a `status` call. You can later change the
-instance list and the **status poll interval** via the integration's **Configure**
-(options) dialog.
+Setup validates the values by issuing a `status` call. You can later update the
+broker URL, bearer token, HMAC key, instance list, and the **status poll interval**
+via **Configure → Reconfigure** (or remove and re-add the integration if you want a
+fresh start).
 
 ## Security notes
 - Only two secrets live in Home Assistant — both narrow and revocable. No Azure
@@ -65,7 +66,7 @@ instance list and the **status poll interval** via the integration's **Configure
 - Every request is signed (HMAC over timestamp + nonce + body) and sent over TLS; the
   broker rejects stale or replayed requests.
 - To revoke access, rotate `BROKER_BEARER_TOKEN` / `BROKER_HMAC_KEY` on the broker and
-  update this integration (Configure → re-enter), or remove the integration.
+  use **Configure → Reconfigure** to update the integration, or remove and re-add it.
 
 ## Example automation
 
