@@ -1,0 +1,61 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Minecraft Broker",
+        "description": "Connect Home Assistant to your Minecraft control broker. The broker URL ends in /api/control. The bearer token and HMAC key are the two secrets configured on the broker; Azure credentials are never stored here.",
+        "data": {
+          "url": "Broker URL",
+          "bearer_token": "Bearer token",
+          "hmac_key": "HMAC key",
+          "instances": "Instances (comma-separated, e.g. survival, creative)"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Authentication failed. Check the bearer token and HMAC key.",
+      "cannot_connect": "Could not reach the broker. Check the URL and that the Function is running.",
+      "unknown": "Unexpected error talking to the broker."
+    },
+    "abort": {
+      "already_configured": "This broker URL is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Minecraft Broker options",
+        "data": {
+          "instances": "Instances (comma-separated)",
+          "scan_interval": "Status poll interval (seconds)"
+        }
+      }
+    }
+  },
+  "services": {
+    "start_server": {
+      "name": "Start server",
+      "description": "Start the VM (and optionally an instance), then report status."
+    },
+    "stop_server": {
+      "name": "Stop server",
+      "description": "Gracefully stop instances, take a fresh backup, then deallocate the VM."
+    },
+    "service_start": {
+      "name": "Start instance",
+      "description": "Start a named Minecraft instance (VM must be running)."
+    },
+    "service_stop": {
+      "name": "Stop instance",
+      "description": "Stop a named Minecraft instance (VM must be running)."
+    },
+    "service_restart": {
+      "name": "Restart instance",
+      "description": "Restart a named Minecraft instance (VM must be running)."
+    },
+    "refresh": {
+      "name": "Refresh status",
+      "description": "Poll the broker for the latest VM and instance status."
+    }
+  }
+}

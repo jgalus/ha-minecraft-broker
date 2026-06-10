@@ -1,0 +1,13 @@
+{
+  "domain": "minecraft_broker",
+  "name": "Minecraft Broker",
+  "codeowners": ["@jgalus"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/jgalus/ha-minecraft-broker",
+  "integration_type": "service",
+  "iot_class": "cloud_poll",
+  "issue_tracker": "https://github.com/jgalus/ha-minecraft-broker/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,45 @@
+start_server:
+  description: Start the VM (and optionally a named instance), then report status.
+  fields:
+    instance:
+      description: Optional instance to start once the VM is up.
+      example: survival
+      required: false
+      selector:
+        text:
+
+stop_server:
+  description: Gracefully stop instances, take a fresh backup, then deallocate the VM.
+
+service_start:
+  description: Start a named Minecraft instance (the VM must be running).
+  fields:
+    instance:
+      description: Instance name.
+      example: survival
+      required: true
+      selector:
+        text:
+
+service_stop:
+  description: Stop a named Minecraft instance (the VM must be running).
+  fields:
+    instance:
+      description: Instance name.
+      example: survival
+      required: true
+      selector:
+        text:
+
+service_restart:
+  description: Restart a named Minecraft instance (the VM must be running).
+  fields:
+    instance:
+      description: Instance name.
+      example: survival
+      required: true
+      selector:
+        text:
+
+refresh:
+  description: Poll the broker for the latest VM and instance status.
