@@ -9,7 +9,7 @@ start_server:
         text:
 
 stop_server:
-  description: Gracefully stop instances, take a fresh backup, then deallocate the VM.
+  description: Gracefully stop all active instances, take fresh backups, then deallocate the VM. Does not accept an instance.
 
 service_start:
   description: Start a named Minecraft instance (the VM must be running).

@@ -2,10 +2,11 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 
-Control your private Azure Minecraft server from Home Assistant — **securely**. Start
-and stop the VM, and start/stop/restart named Minecraft instances, by calling a
-least-privilege **broker** (an Azure Function). Home Assistant stores only a narrow,
-revocable bearer token + HMAC key — **never** Azure credentials.
+Control your private Azure Minecraft server from Home Assistant — **securely**.
+Start and stop the VM as whole-VM actions, and start/stop/restart named
+Minecraft instances, by calling a least-privilege **broker** (an Azure Function).
+Home Assistant stores only a narrow, revocable bearer token + HMAC key —
+**never** Azure credentials.
 
 The integration computes the broker's required `HMAC-SHA256 + timestamp + nonce`
 signature **natively in Python**, so there is no `shell_command`, no external signer
@@ -29,7 +30,7 @@ script, and nothing to install on the host beyond this integration.
 
 **Services** (callable from automations/scripts)
 - `minecraft_broker.start_server` (optional `instance`)
-- `minecraft_broker.stop_server`
+- `minecraft_broker.stop_server` (whole VM; no `instance`)
 - `minecraft_broker.service_start` / `service_stop` / `service_restart` (require `instance`)
 - `minecraft_broker.refresh`
 
@@ -53,7 +54,7 @@ The config flow asks for:
 | Broker URL | `https://minecraft-broker-fn.azurewebsites.net/api/control` | Ends in `/api/control`. |
 | Bearer token | `…` | The `BROKER_BEARER_TOKEN` set on the broker. |
 | HMAC key | `…` | The `BROKER_HMAC_KEY` set on the broker. |
-| Instances | `survival, creative` | Comma-separated; creates per-instance entities/buttons. |
+| Instances | `survival, creative` | Comma-separated; creates per-instance entities/buttons. Labels must be unique and use only letters, digits, `_`, and `-`. |
 
 Setup validates the values by issuing a `status` call. You can later update the
 broker URL, bearer token, HMAC key, instance list, and the **status poll interval**

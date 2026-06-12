@@ -2,13 +2,14 @@
 
 Control your private Azure Minecraft server from Home Assistant — securely.
 
-Start/stop the VM and start/stop/restart named Minecraft instances by calling a
-least-privilege **broker** (an Azure Function). Home Assistant holds only a narrow,
-revocable bearer token + HMAC key — never Azure credentials.
+Start/stop the VM as whole-VM actions and start/stop/restart named Minecraft
+instances by calling a least-privilege **broker** (an Azure Function). Home
+Assistant holds only a narrow, revocable bearer token + HMAC key — never Azure
+credentials.
 
 **Provides**
 - Sensors: VM power state, public IP, per-instance status.
-- Buttons: Start Server, Stop Server, and per-instance Restart / Start / Stop.
+- Buttons: Start Server, Stop Server (whole VM), and per-instance Restart / Start / Stop.
 - Services: `minecraft_broker.start_server`, `stop_server`, `service_start`,
   `service_stop`, `service_restart`, `refresh`.
 

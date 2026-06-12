@@ -25,6 +25,7 @@
     "error": {
       "invalid_auth": "Authentication failed. Check the bearer token and HMAC key.",
       "invalid_url": "Use an HTTPS broker URL, or localhost/127.0.0.1 for local development.",
+      "invalid_instances": "Instance labels must be unique and use only letters, digits, underscores, and hyphens.",
       "cannot_connect": "Could not reach the broker. Check the URL and that the Function is running.",
       "unknown": "Unexpected error talking to the broker."
     },
@@ -42,6 +43,9 @@
           "scan_interval": "Status poll interval (seconds)"
         }
       }
+    },
+    "error": {
+      "invalid_instances": "Instance labels must be unique and use only letters, digits, underscores, and hyphens."
     }
   },
   "services": {

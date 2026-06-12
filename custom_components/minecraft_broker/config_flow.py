@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -40,10 +41,25 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_INSTANCE_LABEL_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+class InstanceValidationError(ValueError):
+    """Raised when the configured broker instance list is invalid."""
 
 
 def _parse_instances(raw: str) -> list[str]:
-    return [item.strip() for item in (raw or "").split(",") if item.strip()]
+    instances: list[str] = []
+    seen: set[str] = set()
+    for item in (raw or "").split(","):
+        instance = item.strip()
+        if not instance:
+            continue
+        if not _INSTANCE_LABEL_RE.fullmatch(instance) or instance in seen:
+            raise InstanceValidationError
+        instances.append(instance)
+        seen.add(instance)
+    return instances
 
 
 async def _validate(hass, url: str, bearer: str, hmac_key: str) -> None:
@@ -64,9 +80,14 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             url = user_input[CONF_URL].strip()
+            try:
+                instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
+            except InstanceValidationError:
+                errors[CONF_INSTANCES] = "invalid_instances"
+
             if not is_secure_broker_url(url):
                 errors["base"] = "invalid_url"
-            else:
+            elif not errors:
                 await self.async_set_unique_id(url)
                 self._abort_if_unique_id_configured()
                 try:
@@ -83,7 +104,6 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
                 except BrokerError:
                     errors["base"] = "unknown"
                 else:
-                    instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
                     return self.async_create_entry(
                         title="Minecraft Broker",
                         data={
@@ -127,10 +147,14 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
                 user_input.get(CONF_BEARER_TOKEN) or entry.data[CONF_BEARER_TOKEN]
             )
             hmac_key = user_input.get(CONF_HMAC_KEY) or entry.data[CONF_HMAC_KEY]
+            try:
+                instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
+            except InstanceValidationError:
+                errors[CONF_INSTANCES] = "invalid_instances"
 
             if not is_secure_broker_url(url):
                 errors["base"] = "invalid_url"
-            else:
+            elif not errors:
                 if url != entry.unique_id:
                     await self.async_set_unique_id(url)
                     self._abort_if_unique_id_configured()
@@ -148,7 +172,6 @@ class MinecraftBrokerConfigFlow(ConfigFlow, domain=DOMAIN):
                 except BrokerError:
                     errors["base"] = "unknown"
                 else:
-                    instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
                     return self.async_update_reload_and_abort(
                         entry,
                         unique_id=url,
@@ -199,14 +222,20 @@ class MinecraftBrokerOptionsFlow(OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(
-                title="",
-                data={
-                    CONF_INSTANCES: _parse_instances(user_input.get(CONF_INSTANCES, "")),
-                    CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
-                },
-            )
+            try:
+                instances = _parse_instances(user_input.get(CONF_INSTANCES, ""))
+            except InstanceValidationError:
+                errors[CONF_INSTANCES] = "invalid_instances"
+            else:
+                return self.async_create_entry(
+                    title="",
+                    data={
+                        CONF_INSTANCES: instances,
+                        CONF_SCAN_INTERVAL: user_input[CONF_SCAN_INTERVAL],
+                    },
+                )
 
         current_instances = ", ".join(
             self._entry.options.get(CONF_INSTANCES, []) or []
@@ -222,4 +251,4 @@ class MinecraftBrokerOptionsFlow(OptionsFlow):
                 ): vol.All(int, vol.Range(min=15, max=3600)),
             }
         )
-        return self.async_show_form(step_id="init", data_schema=schema)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
